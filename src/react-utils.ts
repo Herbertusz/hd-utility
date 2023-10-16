@@ -10,6 +10,17 @@ interface LoopProps {
 }
 
 /**
+ * Segédfüggvény css class-ok hozzáadásához
+ * @param {...string} classList - class-ok
+ * @return {string} szóközökkel összefűzött lista
+ * @example
+ *  <div className={cx(css.logo, css.big, 'col-1')}>
+ */
+export const cx = function(...classList: Array<string | false | undefined | null>): string {
+    return classList.filter(element => !!element).join(' ');
+};
+
+/**
  * Ciklusvezérlő komponens
  * @param {LoopProps} props - bejárandó objektum vagy ismétlések száma
  * @return {ReactElement}

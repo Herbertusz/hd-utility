@@ -2,7 +2,11 @@
     "name": "hd-utility",
     "author": "Horváth Norbert (https://github.com/Herbertusz)",
     "private": false,
-    "version": "0.1.0",
+    "version": "0.1.1",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Herbertusz/hd-utility.git"
+    },
     "main": "./dist/hd-utility.cjs",
     "module": "./dist/hd-utility.mjs",
     "exports": {

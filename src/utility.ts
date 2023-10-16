@@ -3,17 +3,6 @@ import { cloneDeep, isEqual, pick } from 'lodash';
 export type Data<T> = Record<string, T>;
 
 /**
- * Segédfüggvény css class-ok hozzáadásához
- * @param {...string} classList - class-ok
- * @return {string} szóközökkel összefűzött lista
- * @example
- *  <div className={cx(css.logo, css.big, 'col-1')}>
- */
-export const cx = function(...classList: Array<string | false | undefined | null>): string {
-    return classList.filter(element => !!element).join(' ');
-};
-
-/**
  * Switch szerkezet funkcionális megfelelője (elsősorban értékadáshoz)
  * @param {*} variable - változó
  * @param {object} relations - változó különböző értékeihez rendelt visszatérési értékek
