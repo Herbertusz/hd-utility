@@ -9,7 +9,6 @@ The starter is built on top of Vite 4.x and prepared for writing libraries in Ty
 -   Typings bundle
 -   ESLint - scripts linter
 -   Stylelint - styles linter
--   Prettier - formatter
 -   Vitest - test framework
 
 ## Checklist
@@ -31,9 +30,8 @@ The starter contains the following scripts:
 -   `build` - generates the following bundles: CommonJS (`.cjs`) ESM (`.mjs`) and IIFE (`.iife.js`). The name of bundle is automatically taken from `package.json` name property
 -   `test` - starts vitest and runs all tests
 -   `test:coverage` - starts vitest and run all tests with code coverage report
--   `lint:scripts` - lint `.ts` files with eslint
--   `format:scripts` - format `.ts`, `.html` and `.json` files with prettier
--   `format` - format all with prettier and stylelint
+-   `lint` - lint `.ts` files with eslint
+-   `format` - format with eslint
 
 ## Acknowledgment
 

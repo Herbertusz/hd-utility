@@ -1,8 +1,14 @@
 {
     "root": true,
     "parser": "@typescript-eslint/parser",
-    "plugins": ["@typescript-eslint", "prettier"],
-    "extends": ["eslint:recommended", "plugin:@typescript-eslint/eslint-recommended", "plugin:@typescript-eslint/recommended", "prettier"],
+    "plugins": [
+        "@typescript-eslint"
+    ],
+    "extends": [
+        "eslint:recommended",
+        "plugin:@typescript-eslint/eslint-recommended",
+        "plugin:@typescript-eslint/recommended"
+    ],
     "env": {
         "browser": true,
         "node": true
@@ -14,7 +20,6 @@
         "eqeqeq": ["warn", "always"],
         "indent": ["warn", 4],
         "max-len": ["warn", { "code": 140, "ignoreUrls": true, "ignoreRegExpLiterals": true }],
-        "prettier/prettier": "error",
         "quotes": ["warn", "single"],
         "semi": ["error", "always"]
     }
