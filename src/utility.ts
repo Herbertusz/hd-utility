@@ -99,28 +99,6 @@ export const condition = function<T>(construct: [boolean, T][]): T {
 };
 
 /**
- * Ternary operátort helyettesítő függvény
- * @param {*} condition - feltétel
- * @param {*} truthyValue - true esetén visszaadott érték
- * @param {*} falsyValue - false esetén visszaadott érték
- * @return {*}
- * @example
- *  const variable = ternary(
- *      input.type === 'textarea',
- *      'multiline',
- *      'singleline'
- *  );
- * Ezzel egyenértékű:
- *  const variable = input.type === 'textarea'
- *      ? 'multiline'
- *      : 'singleline';
- * Beágyazott ternary-k helyettesítésére a condition() használata ajánlott
- */
-export const ternary = function<T, U, V>(condition: T, truthyValue: U, falsyValue: V): U | V {
-    return condition ? truthyValue : falsyValue;
-};
-
-/**
  * Függvény lefuttatása meghatározott szamú alkalommal (for ciklus funkcionális megfelelője)
  * @param {number} iterationNum - iterációk száma
  * @param {function} callback lefuttatandó függvény
@@ -141,7 +119,7 @@ export const forLoop = function(iterationNum: number, callback: (index: number) 
  */
 export const delay = function<T>(timeout: number, resolvedValue: T): Promise<T> {
     return new Promise((resolve: (value: T) => void) => {
-        window.setTimeout(() => {
+        setTimeout(() => {
             resolve(resolvedValue);
         }, timeout);
     });
@@ -162,26 +140,94 @@ export const delay = function<T>(timeout: number, resolvedValue: T): Promise<T> 
  *      }
  *  );
  */
-export const PromiseSequence = function<T>(factories: ((previousValue: T) => Promise<T>)[]): Promise<T[]> {
-    let result = Promise.resolve(null);
-    const values: (T | null)[] = [];
-    factories.forEach(
-        (factory) => {
-            result = result.then(
-                (currentValue) => {
-                    values.push(currentValue);
-                    return factory(currentValue as T);
-                }
-            ) as Promise<null>;
+// export const PromiseSequence = function<T>(factories: ((previousValue: T) => Promise<T>)[]): Promise<T[]> {
+//     let result = Promise.resolve(null);
+//     const values: (T | null)[] = [];
+//     factories.forEach(
+//         (factory) => {
+//             result = result.then(
+//                 (currentValue) => {
+//                     values.push(currentValue);
+//                     return factory(currentValue as T);
+//                 }
+//             ) as Promise<null>;
+//         }
+//     );
+//     return result.then(
+//         (currentValue) => {
+//             values.shift();
+//             values.push(currentValue);
+//             return values as T[];
+//         }
+//     );
+// };
+
+/**
+ * Promise-ok szekvnciális végrehajtása
+ * @param promiseFactories - promise-t visszaadó függvények tömbje
+ * @return {Promise}
+ * @example
+ *  promiseSequence([
+ *    () => delay(1000, 1).then(() => 1),
+ *    (value) => delay(2000, value).then((val) => val + 1),
+ *    (value) => delay(1000, value).then((val) => val + 1)
+ *  ])
+ *  .then(
+ *    (value) => console.log(value)
+ *  )
+ *  .catch(
+ *    (error) => console.warn(error)
+ *  );
+ */
+export const promiseSequence = function (promiseFactories: ((value: any) => any)[]): Promise<any> {
+    return promiseFactories.reduce(
+        (acc: Promise<any>, curr: (value: any) => Promise<any>) => acc.then(
+            (value: any) => curr(value)
+        ),
+        Promise.resolve()
+    );
+};
+
+/**
+ * Fetch újrapróbalása amíg nem 2xx a response status code, legfeljebb times alkalommal
+ * @param {Object} param
+ * @return {Promise}
+ */
+export const tryRequest = function({
+    times, url, options = { }
+}: {
+    times: number, url: string, options?: RequestInit
+}): Promise<any> {
+    const repeat = (response: Response): Promise<any> | Response => {
+        if (response.ok) {
+            return response;
+        }
+        else {
+            return fetch(url, options);
+        }
+    };
+  
+    return promiseSequence([
+        () => fetch(url, options),
+        ...new Array(times - 1).fill(repeat)
+    ]).then(
+        (response: Response) => {
+            if (response.ok) {
+                return response;
+            }
+            else {
+                throw response;
+            }
         }
     );
-    return result.then(
-        (currentValue) => {
-            values.shift();
-            values.push(currentValue);
-            return values as T[];
-        }
-    );
+};
+
+/**
+ * Függvény lefuttatása macrotask-ként
+ * @param callback
+ */
+export const macrotask = function(callback: () => unknown): void {
+    setTimeout(callback, 0);
 };
 
 /**
@@ -249,18 +295,6 @@ export const sortDescriptor = function<T>(a: T, b: T, order: 'asc' | 'desc' = 'a
             [true, 0]
         ]);
     }
-};
-
-/**
- * Objektum tömbbé alakítása
- * @param {object} obj - {'0': T1, '1': T2, ...} alakú
- * @return {array} [T1, T2, ...] alakú
- */
-export const objectToArray = function<T>(obj: Data<T | number>): T[] {
-    if (!Object.prototype.hasOwnProperty.call(obj, 'length')) {
-        obj.length = Object.keys(obj).length;
-    }
-    return Array.from(obj as unknown as ArrayLike<T>);
 };
 
 /**
@@ -379,16 +413,18 @@ export const ArrayOfObjects = {
         else {
             return [];
         }
+    },
+
+    /**
+     * Duplikált elemek kiszedése (ahol a megadott property azonos)
+     * @param {array} list - bemeneti tömb
+     * @param {number} paramKey - duplikálást definiáló property
+     * @return {array} létrehozott tömb
+     */
+    unique: function<T>(list: T[], paramKey: keyof T): T[] {
+        return Array.from(new Map(list.map(item => [item[paramKey], item])).values());
     }
 
-};
-
-/**
- * Függvény lefuttatása macrotask-ként
- * @param callback
- */
-export const macrotask = function(callback: () => unknown): void {
-    setTimeout(callback, 0);
 };
 
 /**
@@ -399,7 +435,7 @@ export const SVG = {
     /**
      * SVG elem létrehozasa url-ből
      * @param {object} svgUrl - svg url-je
-     * @return {Promise<HTMLImageElement>}
+     * @return {Promise<SVGSVGElement>}
      */
     urlToElement: function(svgUrl: string): Promise<void | SVGSVGElement> {
         const svgContainer = document.createElement('div');
@@ -428,8 +464,8 @@ export const SVG = {
 
     /**
      * SVG kód konvertálása SVG elemmé
-     * @param {object} svgCode - svg elem kódja
-     * @return {object}
+     * @param {string} svgCode - svg elem kódja
+     * @return {SVGSVGElement}
      */
     codeToElement: function(svgCode: string): SVGSVGElement {
         if (!svgCode) {
@@ -442,7 +478,7 @@ export const SVG = {
 
     /**
      * SVG elem konvertálása base64 string-gé
-     * @param {object} svg - svg elem
+     * @param {SVGSVGElement} svg - svg elem
      * @return {string} base64 kód
      */
     elementToBase64: function(svg: SVGSVGElement): string {
@@ -453,7 +489,7 @@ export const SVG = {
 
     /**
      * SVG elem konvertálása base64 string-gé
-     * @param {object} svg - svg elem
+     * @param {SVGSVGElement} svg - svg elem
      * @return {string} data url
      */
     elementToDataUrl: function(svg: SVGSVGElement): string {
@@ -519,7 +555,7 @@ export const IMG = {
     /**
      * Kép url konvertalása base64-el kódolt képpé
      * @param {string} url - URL
-     * @return {string} data url
+     * @return {Promise<string>} data url
      */
     urlToBase64: function(url: string): Promise<string> {
         return new Promise(
@@ -553,7 +589,7 @@ export const IMG = {
     /**
      * Szín hexaérték -> rgb érték
      * @param {string} hex - hexaértek pl: '#0033ff' (röviddel is müködik, pl: '#03f')
-     * @return {array<string>} rgb érték pl: [0, 51, 255]
+     * @return {array<number>} rgb érték pl: [0, 51, 255]
      */
     hexToRgb: function(hex: string): [number, number, number] {
         return (
@@ -576,8 +612,8 @@ export const FILE = {
 
     /**
      *
-     * @param base64
-     * @returns
+     * @param {string} base64
+     * @return {Blob}
      */
     base64ToBlob: function(base64: string): Blob {
         const binaryString = atob(base64);
@@ -594,7 +630,7 @@ export const FILE = {
     /**
      * Fájl létrehozása és letöltés kényszerítése
      * @param {Blob | MediaSource} fileContent - fájl tartalma
-     * @param {strong} fileName - fájl neve
+     * @param {string} fileName - fájl neve
      */
     download: function(fileContent: Blob | MediaSource, fileName: string) {
         const link = document.createElement('a');
@@ -617,17 +653,6 @@ export const generateString = function(length: number): string {
     return Array.from(arr, (dec) => dec.toString(16).padStart(2, '0')).join('');
 };
 
-export function camelIfy(text: string, spacer = ''): string {
-    return text.charAt(0).toLowerCase() + text.replace(' ', spacer).slice(1);
-}
-
-export const uniqueArray = function<T>(list: T[], paramKey?: keyof T) {
-    if (!paramKey) {
-        return list.filter((value, index, array) => array.indexOf(value) === index);
-    }
-    return Array.from(new Map(list.map(item => [item[paramKey], item])).values());
-};
-
 export const duplicatedElements = function<T>(list: T[], paramKey: keyof T): Array<T[keyof T]> {
     const uniqueElements: Array<T> = [];
     const duplicatedElementProps: Array<T[keyof T]> = [];
@@ -643,66 +668,6 @@ export const duplicatedElements = function<T>(list: T[], paramKey: keyof T): Arr
 
     return duplicatedElementProps;
 };
-
-/**
- * Promise-ok szekvnciális végrehajtása
- * @param promiseFactories - promise-t visszaadó függvények tömbje
- * @return {Promise}
- * @example
- *  sequence([
- *    () => delay(1000, 1).then(() => 1),
- *    (value) => delay(2000, value).then((val) => val + 1),
- *    (value) => delay(1000, value).then((val) => val + 1)
- *  ])
- *  .then(
- *    (value) => console.log(value)
- *  )
- *  .catch(
- *    (error) => console.warn(error)
- *  );
- */
-export const promiseSequence = function (promiseFactories: ((value: any) => any)[]): Promise<any> {
-    return promiseFactories.reduce(
-        (acc: Promise<any>, curr: (value: any) => Promise<any>) => acc.then(
-            (value: any) => curr(value)
-        ),
-        Promise.resolve()
-    );
-};
-
-/**
- * Fetch újrapróbalása amíg nem 2xx a response status code, legfeljebb times alkalommal
- * @param {Object} param
- * @return {Promise}
- */
-export const tryRequest = function({
-    times, url, options = { }
-}: {
-    times: number, url: string, options?: RequestInit
-}): Promise<any> {
-    const repeat = (response: Response): Promise<any> | Response => {
-        if (response.ok) {
-            return response;
-        }
-        else {
-            return fetch(url, options);
-        }
-    };
-  
-    return promiseSequence([
-        () => fetch(url, options),
-        ...new Array(times - 1).fill(repeat)
-    ]).then(
-        (response: Response) => {
-            if (response.ok) {
-                return response;
-            }
-            else {
-                throw response;
-            }
-        }
-    );
-};
   
 /**
  * Animáció futtatása
@@ -710,31 +675,38 @@ export const tryRequest = function({
  * @param {function} operation - animáció minden lépésében lefutó függvény, ha false a visszatérési értéke, az animáció leáll
  * @example
  *  animate(200, (current) => {
- *    ctx.clearRect(0, 0, canvasTrack.width, canvasTrack.height);
- *    ctx.fillRect(current, 20, 100, 100);
- *    return current < 500;
- *  });
+ *      ctx.clearRect(0, 0, canvas.width, canvas.height);
+ *      ctx.fillRect(current, 20, 100, 100);
+ *      return current < 500;
+ *  }).then(
+ *      (current) => {
+ *          console.info(current);
+ *      }
+ *  );
  */
-export const animate = function(speed: number, operation: (count: number) => boolean) {
+export const animate = function(speed: number, operation: (count: number) => boolean): Promise<number> {
     let start: number | null = null;
     let id: number;
   
-    const step = (timeStamp: number) => {
-        if (!start) {
-            start = timeStamp;
-        }
-        const elapsed = timeStamp - start;
-        const count = speed / 1000 * elapsed;
-    
-        const continueAnimation = operation(count);
-    
-        if (continueAnimation) {
-            id = requestAnimationFrame(step);
-        }
-        else {
-            cancelAnimationFrame(id);
-        }
-    };
-  
-    id = requestAnimationFrame(step);
+    return new Promise((resolve) =>{
+        const step = (timeStamp: number) => {
+            if (!start) {
+                start = timeStamp;
+            }
+            const elapsed = timeStamp - start;
+            const count = speed / 1000 * elapsed;
+        
+            const continueAnimation = operation(count);
+        
+            if (continueAnimation) {
+                id = requestAnimationFrame(step);
+            }
+            else {
+                cancelAnimationFrame(id);
+                resolve(count);
+            }
+        };
+      
+        id = requestAnimationFrame(step);
+    });
 };
