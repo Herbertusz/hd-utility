@@ -168,18 +168,16 @@ export const delay = function<T>(timeout: number, resolvedValue: T): Promise<T> 
  * @return {Promise}
  * @example
  *  promiseSequence([
- *    () => delay(1000, 1).then(() => 1),
- *    (value) => delay(2000, value).then((val) => val + 1),
- *    (value) => delay(1000, value).then((val) => val + 1)
- *  ])
- *  .then(
- *    (value) => console.log(value)
- *  )
- *  .catch(
- *    (error) => console.warn(error)
+ *      () => delay(1000, 1).then(() => 1),
+ *      (value) => delay(2000, value).then((val) => val + 1),
+ *      (value) => delay(1000, value).then((val) => val + 1)
+ *  ]).then(
+ *      (value) => console.log(value)
+ *  ).catch(
+ *      (error) => console.warn(error)
  *  );
  */
-export const promiseSequence = function (promiseFactories: ((value: any) => any)[]): Promise<any> {
+export const promiseSequence = function(promiseFactories: ((value: any) => any)[]): Promise<any> {
     return promiseFactories.reduce(
         (acc: Promise<any>, curr: (value: any) => Promise<any>) => acc.then(
             (value: any) => curr(value)
@@ -219,6 +217,10 @@ export const tryRequest = function({
                 throw response;
             }
         }
+    ).catch(
+        (error: Error) => {
+            throw error;
+        }
     );
 };
 
@@ -226,8 +228,12 @@ export const tryRequest = function({
  * Függvény lefuttatása macrotask-ként
  * @param callback
  */
-export const macrotask = function(callback: () => unknown): void {
-    setTimeout(callback, 0);
+export const macrotask = function<T>(callback: () => T): Promise<T> {
+    return new Promise((resolve: (value: T) => void) => {
+        setTimeout(() => {
+            resolve(callback());
+        }, 0);
+    });
 };
 
 /**
@@ -347,11 +353,11 @@ export const ArrayOfObjects = {
         plusProp: string,
         plusPropName?: string,
         identityProp?: string
-    }): { [key: string]: number | Partial<T> }[] {
+    }): { [x: string]: number | NonNullable<NonNullable<T>[keyof T]> | null; }[] {
         return from.map(
             (id: number) => ({
                 [identityProp]: id,
-                [plusPropName]: source.find((toItem: T) => toItem[identityProp as keyof T] === id)?.[plusProp as keyof T] ?? { }
+                [plusPropName]: source.find((toItem: T) => toItem[identityProp as keyof T] === id)?.[plusProp as keyof T] ?? null
             })
         );
     },
@@ -468,9 +474,6 @@ export const SVG = {
      * @return {SVGSVGElement}
      */
     codeToElement: function(svgCode: string): SVGSVGElement {
-        if (!svgCode) {
-            throw 'SVG.codeToElement argument is null';
-        }
         const svgContainer = document.createElement('div');
         svgContainer.innerHTML = svgCode;
         return svgContainer.querySelector('svg') as SVGSVGElement;
@@ -497,27 +500,6 @@ export const SVG = {
     },
 
     /**
-     * Base64-gyel kódolt SVG keparánya
-     * @param {string} svgDataUrl - kódolt svg
-     * @return {Promise<number>} képarány (w/h)
-     */
-    getRatio: function(svgDataUrl: string): Promise<number> {
-        return new Promise((resolve, reject) => {
-            const img = document.createElement('img');
-            img.onload = function(): void {
-                document.body.appendChild(img);
-                const ratio = (img.clientWidth / img.clientHeight) || 1;
-                document.body.removeChild(img);
-                resolve(ratio);
-            };
-            img.onerror = function(error: string | Event): void {
-                reject(error);
-            };
-            img.src = svgDataUrl;
-        });
-    },
-
-    /**
      * SVG data url konvertálása base64-el kódolt PNG-vé
      * @param {string} svgDataUrl - kódolt svg
      * @param {number} width - png szélessége
@@ -526,7 +508,7 @@ export const SVG = {
     dataUrlToPng: function(svgDataUrl: string, width: number): Promise<string> {
         return new Promise((resolve, reject) => {
             const img = document.createElement('img');
-            img.onload = function (): void {
+            img.onload = function(): void {
                 document.body.appendChild(img);
                 const ratio = (img.clientWidth / img.clientHeight) || 1;
                 document.body.removeChild(img);
@@ -584,6 +566,27 @@ export const IMG = {
         const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
         ctx.drawImage(img, 0, 0);
         return canvas.toDataURL('image/png');
+    },
+
+    /**
+     * Base64-gyel kódolt kép keparánya
+     * @param {string} dataUrl - kódolt kép
+     * @return {Promise<number>} képarány (w/h)
+     */
+    getRatio: function(dataUrl: string): Promise<number> {
+        return new Promise((resolve, reject) => {
+            const img = document.createElement('img');
+            img.onload = function(): void {
+                document.body.appendChild(img);
+                const ratio = (img.clientWidth / img.clientHeight) || 1;
+                document.body.removeChild(img);
+                resolve(ratio);
+            };
+            img.onerror = function(error: string | Event): void {
+                reject(error);
+            };
+            img.src = dataUrl;
+        });
     },
 
     /**

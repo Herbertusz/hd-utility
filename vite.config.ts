@@ -34,6 +34,6 @@ module.exports = defineConfig({
         },
     },
     test: {
-
+        environment: 'happy-dom'
     }
 });
